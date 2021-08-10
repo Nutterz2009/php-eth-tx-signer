@@ -1,0 +1,31 @@
+{
+    "name": "nutterz2009/php-eth-tx-signer",
+    "description": "PHP Ethereum Raw Transaction Signer with wrapped transaction support",
+    "keywords": ["ethereum", "offline", "transaction", "eth", "tx", "eip-1559", "eip1559"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniel Lazaroiu",
+            "homepage": "https://github.com/nutterz2009/php-eth-tx-signer"
+        }
+    ],
+    "require": {
+        "php": ">=7.1.0",
+        "kornrunner/keccak": "^1.0",
+        "kornrunner/secp256k1": "~0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "nutterz2009\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "nutterz2009\\": "test"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~7",
+        "php-coveralls/php-coveralls": "^2.1"
+    }
+}
