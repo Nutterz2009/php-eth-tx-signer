@@ -74,7 +74,7 @@ class LegacyTransaction
         $input = $this->getInput();
 
         if ($chainId > 0) {
-            $input['v'] = $chainId;
+            $input['v'] = dechex($chainId);
             $input['r'] = '';
             $input['s'] = '';
         } else {
@@ -93,10 +93,19 @@ class LegacyTransaction
 
         $data = [];
         foreach ($input as $item) {
-            $data[] = $item ? '0x' . $this->hexup($item) : '';
+            $data[] = $item ? '0x' . $this->hexup($this->cleanHex($item)) : '';
         }
 
         return $rlp->encode($data);
+    }
+
+    private function cleanHex(string $hex)
+    {
+        if (strcasecmp(substr($hex, 0, 2), '0x') === 0) {
+            return substr($hex, 2, strlen($hex) -  2);
+        }
+
+        return $hex;
     }
 
     private function hexup(string $value): string {
