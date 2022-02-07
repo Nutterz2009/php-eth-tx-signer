@@ -6,7 +6,7 @@ use kornrunner\Keccak;
 use kornrunner\Secp256k1;
 use RuntimeException;
 use kornrunner\Signature\Signature;
-use nutterz2009\RLP\RLP;
+use Web3p\RLP\RLP;
 
 class WrappedTransaction {
     protected $type;

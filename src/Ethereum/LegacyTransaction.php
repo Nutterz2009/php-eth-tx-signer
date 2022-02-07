@@ -2,9 +2,9 @@
 
 namespace nutterz2009\Ethereum;
 
-use nutterz2009\RLP\RLP;
 use kornrunner\Keccak;
 use kornrunner\Secp256k1;
+use Web3p\RLP\RLP;
 
 class LegacyTransaction
 {

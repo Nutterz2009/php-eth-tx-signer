@@ -2,10 +2,10 @@
 
 namespace nutterz2009;
 
-use nutterz2009\RLP\RLP;
 use nutterz2009\Ethereum\LegacyTransaction;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Web3p\RLP\RLP;
 
 class LegacyTransactionTest extends TestCase {
 
