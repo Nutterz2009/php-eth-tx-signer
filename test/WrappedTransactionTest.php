@@ -58,8 +58,8 @@ class WrappedTransactionTest extends TestCase {
      */
     public function testGetRaw ($expect, $privateKey, $type, $chainId, $nonce, $maxPriorityFeePerGas, $maxFeePerGas, $gasLimit, $to, $value, $data, $accessList) {
         $transaction = new WrappedTransaction($type, $chainId, $nonce, $maxPriorityFeePerGas, $maxFeePerGas, $gasLimit, $to, $value, $data, $accessList);
-
-        $this->assertSame($expect, $transaction->getRaw($privateKey));
+        $raw = $transaction->getRaw($privateKey);
+        $this->assertSame($expect, $raw, $raw);
     }
 
     /**
@@ -82,6 +82,16 @@ class WrappedTransactionTest extends TestCase {
         $rlp = new RLP();
         $decoded = $rlp->decode($expect);
 
+        $transaction = new WrappedTransaction($type, $chainId, $nonce, $maxPriorityFeePerGas, $maxFeePerGas, $gasLimit, $to, $value, $data, $accessList);
+
+        $tx = $transaction->getRaw($privateKey);
+        $decoded2 = $rlp->decode($tx);
+        print_r($decoded);
+        print_r($decoded2);
+        $this->assertSame($decoded, $decoded2, $tx);
+        print_r($tx);
+
+
         $this->assertSame($decoded[0], $this->hexify($chainId));
         $this->assertSame($decoded[1], $this->hexify($nonce));
         $this->assertSame($decoded[2], $this->hexify($maxPriorityFeePerGas));
@@ -91,18 +101,26 @@ class WrappedTransactionTest extends TestCase {
         $this->assertSame($decoded[6], $this->hexify($value));
         $this->assertSame($decoded[7], $this->hexify($data));
 
-        $transaction = new WrappedTransaction($type, $chainId, $nonce, $maxPriorityFeePerGas, $maxFeePerGas, $gasLimit, $to, $value, $data, $accessList);
-
-        $tx = $transaction->getRaw($privateKey);
-
         $this->assertSame($expect, $tx);
     }
 
     public static function getRaw (): array {
         return [
             [
+                '02f87501808503f5476a008503f5476a0083027f4b941a8c8adfbe1c59e8b58cc0d515f07b7225f51c72882a45907d1bef7c0080c080a0c77e00e2a7da7db2da606fa4128c3a97d1fd87a3d54e6a88fbecbbd786296d49a04a9201a7f2e07b05cac22a5e4c7f6166fdc33d03decc7de6ef848464a02e1d3c',
+                'b2f2698dd7343fa5afc96626dee139cb92e58e5d04e855f4c712727bf198e898', 2, 1, '0', '03f5476a00', '03f5476a00', '027f4b', '1a8c8adfbe1c59e8b58cc0d515f07b7225f51c72', '2a45907d1bef7c00', '', []
+            ],
+            [
+                '02f8760181808503f5476a008503f5476a0083027f4b941a8c8adfbe1c59e8b58cc0d515f07b7225f51c72882a45907d1bef7c0080c001a071517e0d94fbebd3b21c40236e1ee849ba0b9f785c9095a46b7feda8546d01d1a05096f06c39998a768c8fae474ee5afa312aba9d09628bbff021d53bce80d7707',
+                'b2f2698dd7343fa5afc96626dee139cb92e58e5d04e855f4c712727bf198e898', 2, 1, '80', '03f5476a00', '03f5476a00', '027f4b', '1a8c8adfbe1c59e8b58cc0d515f07b7225f51c72', '2a45907d1bef7c00', '', []
+            ],
+            [
+                '02f87501018503f5476a008503f5476a0083027f4b941a8c8adfbe1c59e8b58cc0d515f07b7225f51c72882a45907d1bef7c0080c001a0ae0d4f6a02b836a8d1d199a4a7072720aa0b2b0bd62c3f7aa7282360e20cf4c7a039bfeb0ac13cc527ca6eda4431ddd2cdee70ade2acb0066f7096298eb6c7dd22',
+                'b2f2698dd7343fa5afc96626dee139cb92e58e5d04e855f4c712727bf198e898', 2, 1, '01', '03f5476a00', '03f5476a00', '027f4b', '1a8c8adfbe1c59e8b58cc0d515f07b7225f51c72', '2a45907d1bef7c00', '', []
+            ],
+            [//                                                                                                       ||
                 '02f87501048503f5476a008503f5476a0083027f4b941a8c8adfbe1c59e8b58cc0d515f07b7225f51c72882a45907d1bef7c0080c080a05249f427fe1ccd2ed5404ccd65a58def6f905e19fcfb95740e56a67c842824d9a05343a214cf93b65bc195ba0db879e972c6cc146b6775ac3c41c2618640d2c68b',
-                'b2f2698dd7343fa5afc96626dee139cb92e58e5d04e855f4c712727bf198e898', 2, 1, '04', '03f5476a00', '03f5476a00', '027f4b', '1a8c8adfbe1c59e8b58cc0d515f07b7225f51c72', '2a45907d1bef7c00', '', []
+                'b2f2698dd7343fa5afc96626dee139cb92e58e5d04e855f4c712727bf198e898', 2, 1, '4', '03f5476a00', '03f5476a00', '027f4b', '1a8c8adfbe1c59e8b58cc0d515f07b7225f51c72', '2a45907d1bef7c00', '', []
             ],
             [
                 '02f87503048503f5476a008503f5476a0083027f4b942d1b28bb956a25f98133ca797a993a14fddbec8088043a280a6a5a0c0080c080a0ac30fc461706cef108323afa85cc6766869b2eaee94923dc22f5b5774b82e8e3a05fd6ece6df0eba29a5d498d608f70dd6d7a366d8192887a69236f9f44b723040',

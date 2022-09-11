@@ -96,7 +96,11 @@ class WrappedTransaction {
 
         $this->r = $this->hexup(gmp_strval($signed->getR(), 16));
         $this->s = $this->hexup(gmp_strval($signed->getS(), 16));
-        $this->y = $this->hexup(dechex(($signed->getRecoveryParam() % 2 === 1) ? 0x01 : 0x80));
+        if ($signed->getRecoveryParam() % 2 === 1) {
+            $this->y = '01';
+        } else {
+            $this->y = '';
+        }
     }
 
     private function hash(): string {
@@ -127,6 +131,7 @@ class WrappedTransaction {
                 $output[] = $this->addRLPItem($item);
             } else {
                 $output[] = $item ? '0x' . $this->hexup($item) : '';
+//                $output[] = strlen($item) > 0 ? '0x' . $this->hexup($item) : '';
             }
         }
 
