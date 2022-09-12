@@ -10,10 +10,10 @@
         }
     ],
     "require": {
-        "php": ">=7.1.0",
+        "php": ">=7.4.0",
         "kornrunner/keccak": "^1.0",
         "kornrunner/secp256k1": "~0.1",
-        "web3p/rlp": "^0.3.4"
+        "ext-gmp": "*"
     },
     "autoload": {
         "psr-4": {

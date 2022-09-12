@@ -4,11 +4,13 @@ namespace nutterz2009\Ethereum;
 
 use kornrunner\Keccak;
 use kornrunner\Secp256k1;
+use nutterz2009\RLP\RLP;
+use nutterz2009\SharedTrait;
 use RuntimeException;
-use kornrunner\Signature\Signature;
-use Web3p\RLP\RLP;
 
 class WrappedTransaction {
+    use SharedTrait;
+
     protected $type;
     protected $chainId;
     protected $nonce;
@@ -78,7 +80,7 @@ class WrappedTransaction {
 
         $this->sign($privateKey);
 
-        return $this->hexup(dechex((int) $this->type)) . $this->serialize();
+        return $this->padHex(dechex((int) $this->type)) . $this->serialize();
     }
 
     private function serialize(): string {
@@ -89,17 +91,18 @@ class WrappedTransaction {
         $hash = $this->hash();
         $secp256k1 = new Secp256k1();
 
-        /**
-         * @var Signature
-         */
         $signed = $secp256k1->sign($hash, $privateKey);
 
-        $this->r = $this->hexup(gmp_strval($signed->getR(), 16));
-        $this->s = $this->hexup(gmp_strval($signed->getS(), 16));
-        $this->y = $this->hexup(dechex(($signed->getRecoveryParam() % 2 === 1) ? 0x01 : 0x80));
+        $this->r = $this->padHex(gmp_strval($signed->getR(), 16));
+        $this->s = $this->padHex(gmp_strval($signed->getS(), 16));
+        if ($signed->getRecoveryParam() % 2 === 1) {
+            $this->y = '01';
+        } else {
+            $this->y = '';
+        }
     }
 
-    private function hash(): string {
+    protected function hash(): string {
         $input = $this->getInput();
 
         unset($input['y']);
@@ -108,7 +111,7 @@ class WrappedTransaction {
 
         $encoded = $this->RLPencode($input);
 
-        return Keccak::hash(hex2bin($this->hexup($this->type)) . hex2bin($encoded), 256);
+        return Keccak::hash(hex2bin($this->padHex($this->type)) . hex2bin($encoded), 256);
     }
 
     private function RLPencode(array $input): string
@@ -126,14 +129,10 @@ class WrappedTransaction {
             if (is_array($item)) {
                 $output[] = $this->addRLPItem($item);
             } else {
-                $output[] = $item ? '0x' . $this->hexup($item) : '';
+                $output[] = $item ? '0x' . $this->padHex($this->stripHexPrefix($item)) : '';
             }
         }
 
         return $output;
-    }
-
-    private function hexup(string $value): string {
-        return strlen ($value) % 2 === 0 ? $value : "0{$value}";
     }
 }
