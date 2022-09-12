@@ -4,10 +4,12 @@ namespace nutterz2009\Ethereum;
 
 use kornrunner\Keccak;
 use kornrunner\Secp256k1;
-use Web3p\RLP\RLP;
+use nutterz2009\SharedTrait;
 
 class LegacyTransaction
 {
+    use SharedTrait;
+
     protected $nonce;
     protected $gasPrice;
     protected $gasLimit;
@@ -65,9 +67,9 @@ class LegacyTransaction
         $secp256k1 = new Secp256k1();
         $signed    = $secp256k1->sign($hash, $privateKey);
 
-        $this->r   = $this->hexup(gmp_strval($signed->getR(), 16));
-        $this->s   = $this->hexup(gmp_strval($signed->getS(), 16));
-        $this->v   = $this->hexup(dechex($signed->getRecoveryParam ($hash, $privateKey) + 27 + ($chainId ? $chainId * 2 + 8 : 0)));
+        $this->r   = $this->padHex(gmp_strval($signed->getR(), 16));
+        $this->s   = $this->padHex(gmp_strval($signed->getS(), 16));
+        $this->v   = $this->padHex(dechex($signed->getRecoveryParam ($hash, $privateKey) + 27 + ($chainId ? $chainId * 2 + 8 : 0)));
     }
 
     protected function hash(int $chainId): string {
@@ -93,22 +95,9 @@ class LegacyTransaction
 
         $data = [];
         foreach ($input as $item) {
-            $data[] = $item ? '0x' . $this->hexup($this->cleanHex($item)) : '';
+            $data[] = $item ? '0x' . $this->padHex($this->stripHexPrefix($item)) : '';
         }
 
         return $rlp->encode($data);
-    }
-
-    private function cleanHex(string $hex)
-    {
-        if (strcasecmp(substr($hex, 0, 2), '0x') === 0) {
-            return substr($hex, 2, strlen($hex) -  2);
-        }
-
-        return $hex;
-    }
-
-    private function hexup(string $value): string {
-        return strlen ($value) % 2 == 1 ? "0{$value}" : $value;
     }
 }

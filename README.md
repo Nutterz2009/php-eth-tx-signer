@@ -1,16 +1,41 @@
-# php-eth-tx-signer 
+# php-eth-tx-signer
 
-PHP Ethereum Raw Transaction Signer
+PHP Ethereum Offline Raw Transaction Signer
 
 Rewritten from `kornrunner/ethereum-offline-raw-tx`
 
-Current Version: `V0.1`
+Current Version: `V0.3.0`
+
+--- 
+
+# <em style="color:#FF0000">Warning:</em>
+<div style="color:#FF0000">Version 0.3.0 may contain BREAKING changes:</div>
+<div>Please check your code before updating!!!</div>
+
+```
+NOW:
+   (int) '0'    => 0x80    <----
+(string) '0'    => 0x80    <----
+(string) ''     => 0x80    <----
+(string) '0x80' => 0x8180  <---- 
+
+Before:
+   (int) '0'    => 0x80    <----
+(string) '0'    => 0x80    <----
+(string) ''     => 0x80    <----
+(string) '0x80' => 0x80    <---- this was the real problem,
+                           ^^^^^  txs were not properly encoded at this nonce
+                           ^^^^^  could of caused other problems on tx encoding 
+Any values > 0x80 are NOT changed.
+```
+
+---
 ## Usage
 
 ```php
 use nutter2009\Ethereum\LegacyTransaction;
 
-$chainId  = 1;
+$chainId  = '1';
 $nonce    = '04';
 $gasPrice = '03f5476a00';
 $gasLimit = '027f4b';
@@ -29,14 +54,14 @@ With wrapped transactions
 ```php
 use nutterz2009\Ethereum\WrappedTransaction;
 
-$type     = 2; 
+$type     = '2'; 
 $nonce    = '06';
 $maxPriorityFeePerGas = '6553f100';
 $maxFeePerGas = '03f5476a00';
 $gasLimit = '027f4b';
 $to       = '2d1b28bb956a25f98133ca797a993a14fddbec80';
 $value    = '16345785d8a0000';
-$chainId  = 3;
+$chainId  = '3';
 $data     = '';
 $accessList = [];
 

@@ -2,78 +2,25 @@
 
 namespace nutterz2009\RLP;
 
-use nutterz2009\Encoder\Buffer;
+use nutterz2009\SharedTrait;
 
 class RLP
 {
-    private function compact($data)
+    use SharedTrait;
+
+    public function encode($data): string
     {
-        if (is_array($data)) {
-            $out = '';
-            foreach ($data as $item) {
-                if (is_array($item)) {
-                    $out .= $this->compact($item);
-                } else {
-                    $out .= $item;
-                }
-            }
-
-            return $out;
-        }
-
-        return $data;
-    }
-
-    public function encode($data)
-    {
-        $data = $this->encodeToByteString($data);
-        $decoded = $this->decodeFromByteString($this->compact($data));
-
         $encoded = $this->rlpEncode($data);
 
-        return $this->decodeFromByteString($encoded);
+        return bin2hex($encoded);
     }
 
-    private function encodeToByteString($data)
-    {
-        if (is_array($data)) {
-            $out = [];
-            foreach ($data as $datum) {
-                $out[] = $this->encodeToByteString($datum);
-            }
-
-            return $out;
-        } else {
-            if (strcasecmp("0x", substr($data, 0, 2)) === 0) {
-                $data = substr($data, 2, strlen($data) - 2);
-            }
-            $data = $this->hexify($data);
-            $charString = '';
-            for ($i = 0; $i < strlen($data); $i += 2) {
-                $charString .= chr(hexdec(substr($data, $i, 2)));
-            }
-
-            return $charString;
-        }
-    }
-
-    private function decodeFromByteString(string $data): string
-    {
-        $out = '';
-        while(strlen($data) !== 0) {
-            $out .= $this->hexify(dechex(ord(substr($data, 0, 1))));
-
-            $data = substr($data, 1, strlen($data) - 1);
-        }
-
-        return $out;
-    }
-
-    public function rlpEncode($data)
+    protected function rlpEncode($data): string
     {
         if (is_string($data)) {
+            $data = hex2bin($this->stripHexPrefix($data));
             if (ord($data) === 0) {
-                $data = ''; // This is needed because of the way PHP handles numbers
+                $data = '';
             }
 
             if (strlen($data) === 1 && ord($data) < 0x80) {
@@ -93,7 +40,7 @@ class RLP
         }
     }
 
-    private function encodeLength(int $length, int $offset)
+    protected function encodeLength(int $length, int $offset): string
     {
         if ($length < 56) {
             return chr($length + $offset);
@@ -106,7 +53,7 @@ class RLP
         }
     }
 
-    private function toBinary(int $x)
+    protected function toBinary(int $x): string
     {
         if ($x == 0) {
             return '';
@@ -115,111 +62,75 @@ class RLP
         }
     }
 
-    private function hexify(string $hex)
+    public function decode(string $input): array
     {
-        if (strlen($hex) % 2 === 1) {
-            return '0' . $hex;
+        if (hexdec(substr($input, 0, 2)) < 0x7f) {
+            // if is newer transaction type, the first hex value will be the tx type
+            $input = substr($input, 2);
         }
 
-        return $hex;
+        return $this->decodeRLP(hex2bin($input))[0];
     }
 
-    public function decode($input)
+    protected function decodeRLP(string $input): array
     {
-        if ($input instanceof Buffer) {
-            $buffer = $input;
-        } else {
-            $buffer = new Buffer;
-
-            $buffer->concat($input, Buffer::ENCODING_HEX);
-        }
-
-        if (!count($buffer)) {
-            return [];
-        }
-
-        if ($buffer[0] === 2) {
-            $buffer = $buffer->getSlice(1);
-        }
-
         $output = [];
-        list($offset, $len, $type) = $this->decodeLength($buffer);
-        if (is_string($type)) {
-            $output[] = $buffer->getSlice($offset, $len)->__toString();
-        } else if (is_array($type)) {
-            $output = array_merge($output, $this->decode($buffer->getSlice($offset, $len)));
-        }  else {
-            throw new \RuntimeException("Should not happen");
-        }
-
-        $start = $offset + $len;
-
-        $second = $this->decode($buffer->getSlice($start));
-
-        if ($start !== $buffer->count()) {
-            $output = array_merge($output, $second);
+        while (strlen($input) !== 0) {
+            list($offset, $dataLen, $type) = $this->decodeLength($input);
+            if (is_string($type)) {
+                $output[] = bin2hex(substr($input, $offset, $dataLen));
+            } elseif (is_array($type)) {
+                $output[] = $this->decodeRLP(substr($input, $offset, $dataLen));
+            } else {
+                throw new \InvalidArgumentException('Invalid RLP');
+            }
+            $input = substr($input, $offset + $dataLen);
         }
 
         return $output;
     }
 
-    protected function decodeLength(Buffer $buffer)
+    protected function decodeLength(string $input): array
     {
-        $len = count($buffer);
-
-        if ($len === 0) {
-            throw new \RuntimeException('Input is null');
+        $length = strlen($input);
+        if ($length == 0) {
+            throw new \InvalidArgumentException('Input is null');
         }
-
-        $prefix = $buffer[0];
+        $prefix = ord(substr($input, 0, 1));
         if ($prefix <= 0x7f) {
-            return [0, 1, 'str'];
-        } else if ($prefix <= 0xb7 && $len > ($prefix) - 0x80) {
-            return [1, $prefix - 0x80, 'str'];
-        } else if ($prefix <= 0xbf && $len > $prefix - 0xb7 && $len > $prefix - 0xb7 + $this->toInteger($buffer->getSlice(1, $prefix - 0xb7))) {
-            $strLen = $prefix - 0xb7;
+            return [0, 1, 'string'];
+        } elseif ($prefix <= 0xb7 && $length > $prefix - 0x80) {
+            $strLen = $prefix - 0x80;
 
-            return [1 + $strLen, $this->toInteger($buffer->getSlice(1, $strLen)), 'str'];
-        } else if ($prefix <= 0xf7 && $len > $prefix - 0xc0) {
-            return [1, $prefix - 0xc0, []];
-        } else if ($prefix <= 0xff && $len > $prefix - 0xf7 && $len > $prefix - 0xf7 + $this->toInteger($buffer->getSlice(1, $prefix - 0xf7))) {
-            $strLen = $prefix - 0xf7;
-            $listLen = $this->toInteger($buffer->getSlice(1, $strLen));
+            return [1, $strLen, 'string'];
+        } elseif ($prefix <= 0xbf && $length > $prefix - 0xb7 && $length > $prefix - 0xb7 + $this->toInteger(substr($input, 1, $prefix - 0xb7))) {
+            $lenOfStrLen = $prefix - 0xb7;
+            $strLen = $this->toInteger(substr($input, 1, $lenOfStrLen));
 
-            return [1 + $strLen, $listLen, []];
+            return [1+$lenOfStrLen, $strLen, 'string'];
+        } elseif ($prefix <= 0xf7 && $length > $prefix - 0xc0) {
+            $listLen = $prefix - 0xc0;
+
+            return [1, $listLen, array()];
+        }  elseif ($prefix <= 0xff && $length > $prefix - 0xf7 && $length > $prefix - 0xf7 + $this->toInteger(substr($input, 1, $prefix - 0xf7))) {
+            $lenOfListLen = $prefix - 0xf7;
+            $listLen = $this->toInteger(substr($input, 1, $lenOfListLen));
+
+            return [1 + $lenOfListLen, $listLen, array()];
         } else {
-            throw new \RuntimeException('Input does not conform with RLP encoding standard.');
+            throw new \InvalidArgumentException('Input doesn\'t conform with RLP encoding standard.');
         }
     }
 
-    protected function toInteger(Buffer $buffer)
+    protected function toInteger($b): int
     {
-        $length = $buffer->count();
-
+        $length = strlen($b);
         if ($length === 0) {
-            throw new \RuntimeException('Empty buffer supplied.');
+            throw new \InvalidArgumentException('Input is null.');
         } else if ($length === 1) {
-            return $buffer[0];
+            return ord(substr($b, 0, 1));
         } else {
-            return $buffer->getSlice(-1)[0] + $this->toInteger($buffer->getSlice(0, -1)) * 256;
+            return gmp_intval(gmp_add(ord(substr($b, -1)), gmp_mul($this->toInteger(substr($b, 0, -1)), 256)));
         }
-    }
-
-    protected function checkHexLead($val)
-    {
-        if (((int) $val) % 2 === 0) {
-            return $val;
-        }
-
-        return '0' . $val;
-    }
-
-    protected function stripHex(string $val): string
-    {
-        if (substr($val, 0, 2) === '0x') {
-            return substr($val, 2, strlen($val) - 2) ?? '';
-        }
-
-        return $val;
     }
 }

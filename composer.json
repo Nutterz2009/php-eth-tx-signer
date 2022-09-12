@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": ">=7.3.0",
+        "php": ">=7.4.0",
         "kornrunner/keccak": "^1.0",
         "kornrunner/secp256k1": "~0.1",
         "ext-gmp": "*"
